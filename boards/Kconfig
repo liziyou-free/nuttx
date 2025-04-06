@@ -12,6 +12,13 @@ choice
 		be available for selection.  Use ARCH_BOARD_CUSTOM to create a new
 		board configuration.
 
+config ARCH_BOARD_LICHEE_PI
+		bool "Allwinner lichee-pi board"
+		depends on ARCH_CHIP_ALLWINNER_V3S_ARM
+		---help---
+			This options selects support for NuttX on the allwinner v3s lichee-pi
+			board.
+
 config ARCH_BOARD_AMBER
 	bool "Amber Web Server"
 	depends on ARCH_CHIP_ATMEGA128
@@ -3592,6 +3599,7 @@ config ARCH_BOARD
 	default "qemu-armv7a"               if ARCH_BOARD_QEMU_ARMV7A
 	default "qemu-armv7r"               if ARCH_BOARD_QEMU_ARMV7R
 	default "qemu-armv8a"               if ARCH_BOARD_QEMU_ARMV8A
+    default "lichee-pi-v3s"             if ARCH_BOARD_LICHEE_PI
 	default "pinephone"                 if ARCH_BOARD_PINEPHONE
 	default "pinephonepro"              if ARCH_BOARD_PINEPHONE_PRO
 	default "nanopi_m4"                 if ARCH_BOARD_NANOPI_M4
@@ -3816,6 +3824,9 @@ source "boards/arm/qemu/qemu-armv7a/Kconfig"
 endif
 if ARCH_BOARD_QEMU_ARMV8A
 source "boards/arm64/qemu/qemu-armv8a/Kconfig"
+endif
+if ARCH_BOARD_LICHEE_PI
+source "boards/arm/allwinner/lichee-pi-v3s/Kconfig"
 endif
 if ARCH_BOARD_PINEPHONE
 source "boards/arm64/a64/pinephone/Kconfig"

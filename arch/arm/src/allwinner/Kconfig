@@ -1,0 +1,28 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+if ARCH_CHIP_ALLWINNER_V3S_ARM
+
+menu "Allwinner-V3S Chip Selection"
+
+choice
+	prompt "allwinner-v3s Core Configuration"
+	default ARCH_CHIP_ALLWINNER_CORTEXA7
+
+config ARCH_CHIP_ALLWINNER_CORTEXA7
+	bool "Allwinner v3s Processor (cortex-a7)"
+	select ARCH_CORTEXA7
+	select ARCH_HAVE_ADDRENV
+	select ARCH_HAVE_LOWVECTORS
+	select ARCH_NEED_ADDRENV_MAPPING
+	select ARMV7A_HAVE_GICv2
+	select ARMV7A_HAVE_GTM
+	select ARMV7A_HAVE_PTM
+
+endchoice # Allwinner Chip Selection
+
+endmenu   # "Allwinner Chip Selection"
+
+endif     # 'ARCH_CHIP_ALLWINNER_V3S_ARM'

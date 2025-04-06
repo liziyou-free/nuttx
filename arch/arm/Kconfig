@@ -742,6 +742,14 @@ config ARCH_CHIP_QEMU_ARM
 	---help---
 		QEMU virt platform (ARMv7a)
 
+config ARCH_CHIP_ALLWINNER_V3S_ARM
+	bool "Allwinner v3s platform (ARMv7a)"
+	select ARCH_HAVE_POWEROFF
+	select ARCH_HAVE_RESET
+	select ARCH_IDLE_CUSTOM
+	---help---
+		Allwinner v3s platform (ARMv7a)
+
 config ARCH_CHIP_GOLDFISH_ARM
 	bool "GOLDFISH virt platform (ARMv7a)"
 	select ARCH_HAVE_POWEROFF
@@ -1195,6 +1203,7 @@ config ARCH_CHIP
 	default "phy62xx"	if ARCH_CHIP_PHY62XX
 	default "tlsr82"	if ARCH_CHIP_TLSR82
 	default "qemu"		if ARCH_CHIP_QEMU_ARM
+	default "allwinner" if ARCH_CHIP_ALLWINNER_V3S_ARM
 	default "mps"		if ARCH_CHIP_MPS
 	default "goldfish"	if ARCH_CHIP_GOLDFISH_ARM
 	default "at32"		if ARCH_CHIP_AT32
@@ -1707,6 +1716,9 @@ source "arch/arm/src/tlsr82/Kconfig"
 endif
 if ARCH_CHIP_QEMU_ARM
 source "arch/arm/src/qemu/Kconfig"
+endif
+if ARCH_CHIP_ALLWINNER_V3S_ARM
+source "arch/arm/src/allwinner/Kconfig"
 endif
 if ARCH_CHIP_MPS
 source "arch/arm/src/mps/Kconfig"
