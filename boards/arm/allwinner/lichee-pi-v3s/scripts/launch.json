@@ -1,0 +1,43 @@
+{ 
+    "version": "0.2.0",
+     "configurations": [
+         {
+             "name": "CherryPi-V3s",
+             "type": "cppdbg",
+             "request": "launch",
+             "miDebuggerPath": "/usr/bin/gdb-multiarch",
+             "miDebuggerArgs": "--cd=${workspaceFolder} --nx",
+             "MIMode": "gdb",
+              "program": "${workspaceFolder}/nuttx/nuttx",
+               "setupCommands": [
+                 {"text": "target remote localhost:2331"},
+                 {"text": "load ${workspaceFolder}/nuttx/nuttx"},
+                 {"text": "b __start","ignoreFailures": true},
+                 {"text": "set $pc=0x40000000"}
+             ],
+             "launchCompleteCommand": "None",
+             "externalConsole": false,
+             "cwd": "${workspaceFolder}"
+         },
+         {
+             "name": "qemu-nuttx",
+             "type": "cppdbg",
+             "request": "launch",
+             "miDebuggerPath": "/usr/bin/gdb-multiarch",
+             "miDebuggerArgs": "--cd=${workspaceFolder} --nx",
+             "MIMode": "gdb",
+              "program": "${workspaceFolder}/nuttx-qemu/nuttx",
+               "setupCommands": [
+                 {"text": "set remotetimeout 5"},
+                 {"text": "target remote localhost:1234"},
+                 {"text": "monitor reset halt"},
+                 {"text": "set $pc=0x40101000"},
+                 {"text": "break main","ignoreFailures": true}
+             ],
+             "launchCompleteCommand": "None",
+             "externalConsole": false,
+             "cwd": "${workspaceFolder}"
+         }
+     ]
+ }
+ 
