@@ -62,10 +62,11 @@ int v3s_timer_init(uint32_t timer_no, uint32_t tick_per_seco);
 
 void arm_serialinit(void)
 {
-  up_nputs("\r\nInit 16650 Uart ...", 22);
-
   u16550_serialinit();
   v3s_timer_init(1, 1000);
+
+  up_nputs("\r\nInit arm timer ...", 21);
+  up_nputs("\r\nInit 16650 uart ...", 22);
 }
 
 #endif /* CONFIG_16550_UART */

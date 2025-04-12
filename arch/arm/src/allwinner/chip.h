@@ -32,19 +32,29 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/*
+ * \note 下面有关RAM CODE IO 区域的宏定义 起始地址和段大小 一律按1MB对齐
+
+ * \note Values provided for NUTTX_RAM_* must all be properly aligned to 1MB
+ * address boundaries
+*/
+
 #define CHIP_MPCORE_VBASE     V3S_SCU_SPPPACE_BASE
 
+/* 使能该宏: 在使能MMU之前会为翻译表自身建立映射 */
+#define ARMV7A_PGTABLE_MAPPING 1
 
-#define PGTABLE_SIZE           0x00004000
+#define PGTABLE_SIZE          0x00200000
 #define PGTABLE_BASE_PADDR    (CONFIG_RAM_START + CONFIG_RAM_SIZE - PGTABLE_SIZE * CONFIG_SMP_NCPUS)
 #define PGTABLE_BASE_VADDR    (CONFIG_RAM_START + CONFIG_RAM_SIZE - PGTABLE_SIZE * CONFIG_SMP_NCPUS)
 
 #undef CONFIG_RAM_END
 #define CONFIG_RAM_END        PGTABLE_BASE_PADDR
 
-#define NUTTX_TEXT_VADDR      (CONFIG_FLASH_VSTART & 0xfff00000)
-#define NUTTX_TEXT_PADDR      (CONFIG_FLASH_VSTART & 0xfff00000)
-#define NUTTX_TEXT_PEND       ((CONFIG_FLASH_END + 0x000fffff) & 0xfff00000)
+#define NUTTX_TEXT_VADDR      0x40000000
+#define NUTTX_TEXT_PADDR      0x40000000
+#define NUTTX_TEXT_END        0x41000000
+#define NUTTX_TEXT_PEND       ((NUTTX_TEXT_END + 0x000fffff) & 0xfff00000)
 #define NUTTX_TEXT_SIZE       (NUTTX_TEXT_PEND - NUTTX_TEXT_PADDR)
 
 #define NUTTX_RAM_VADDR       (CONFIG_RAM_VSTART & 0xfff00000)

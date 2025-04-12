@@ -2,4 +2,4 @@
 
 # arm-none-eabi-objdump
 
-JLinkGDBServer -select USB -device Cortex-A7 -endian little -if JTAG -speed 4000  -ir -LocalhostOnly
+JLinkGDBServer -select USB -device Cortex-A7 -endian little -if JTAG -speed 12000  -ir -LocalhostOnly

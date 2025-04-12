@@ -49,7 +49,7 @@ static const struct section_mapping_s g_section_mapping[] =
   },
   {
     V3S_DATA_SECTION_PA, V3S_DATA_SECTION_VA,
-    MMU_MEMFLAGS, _NSECTIONS(V3S_DATAs_SECTION_SIZE)
+    MMU_STRONGLY_ORDERED, _NSECTIONS(V3S_DATA_SECTION_SIZE)
   },
   // {
   //   V3S_DMA_SECTION_PA, V3S_DMA_SECTION_VA,

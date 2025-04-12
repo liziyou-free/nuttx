@@ -21,6 +21,7 @@
 #include "arm_internal.h"
 #include "v3s_emac.h"
 
+
 #ifdef CONFIG_NET_PKT
 #  include <nuttx/net/pkt.h>
 #endif
@@ -30,11 +31,11 @@
 #endif
 
 #ifndef CONFIG_V3S_MAC_TXDES_NUM
-# define CONFIG_V3S_MAC_TXDES_NUM       16
+# define CONFIG_V3S_MAC_TXDES_NUM       128
 #endif
 
 #ifndef CONFIG_V3S_MAC_RXDES_NUM
-# define CONFIG_V3S_MAC_RXDES_NUM       16
+# define CONFIG_V3S_MAC_RXDES_NUM       128
 #endif
 
 #if !defined(CONFIG_SCHED_WORKQUEUE)
@@ -153,18 +154,14 @@ static int v3s_descripter_init(FAR struct v3s_mac_dev_s *priv);
 
 static void putreg32(uint32_t v, uint32_t a)
 {
-    arm_isb();
     *(volatile uint32_t *)(a) = (v);
-    arm_isb();
     return;
 }
 
 static uint32_t getreg32(uint32_t a)
 {
     uint32_t v;
-    arm_isb();
     v = *(volatile uint32_t *)(a);
-    arm_isb();
     return v;
 }
 
@@ -251,27 +248,35 @@ static int mii_phy_init(FAR struct v3s_mac_dev_s *priv)
     v3s_phy_write(priv, 0x1f, 0x003d);
 
     /* Reset phy chip */
+    volatile int try = 100;
     phy_val = v3s_phy_read(priv, MII_MCR);
     v3s_phy_write(priv, MII_MCR, phy_val | MII_MCR_RESET);
     do {
+        try--;
         reg_val = v3s_phy_read(priv, MII_MCR);
-    } while (reg_val & MII_MCR_RESET);
-
-    phy_val = v3s_phy_read(priv, MII_MCR);
-    v3s_phy_write(priv, MII_MCR, (phy_val & ~MII_MCR_PDOWN));
-    do {
-        reg_val = v3s_phy_read(priv, MII_MCR);
-    } while (reg_val & MII_MCR_PDOWN);
-
-    /* Wait BMSR_ANEGCOMPLETE be set */
-    i = 0;
-    while(!(v3s_phy_read(priv, MII_MSR) & MII_MSR_ANEGCOMPLETE)) {
-        if (i > 100) {
-            printf("Warning: Auto negotiation timeout!\n");
-        }
-        do { unsigned long tt = 0xffffff; while (tt--); } while (0);
-        i++;
+    } while ((reg_val & MII_MCR_RESET) && try);
+    if (try <= 0) {
+        printf("Warning: PHY reset timeout!\n");
+        return -1;
     }
+    v3s_phy_write(priv, MII_MCR, 0x2100);
+
+    // phy_val = v3s_phy_read(priv, MII_MCR);
+    // v3s_phy_write(priv, MII_MCR, (phy_val | (MII_MCR_ANRESTART | MII_MCR_ANENABLE)));
+    // do {
+    //     reg_val = v3s_phy_read(priv, MII_MCR);
+    // } while (reg_val & MII_MCR_PDOWN);
+
+    // /* Wait BMSR_ANEGCOMPLETE be set */
+    // i = 0;
+    // while(!(v3s_phy_read(priv, MII_MSR) & MII_MSR_ANEGCOMPLETE)) {
+    //     if (i > 100) {
+    //         printf("Warning: Auto negotiation timeout!\n");
+    //         break;
+    //     }
+    //     do { volatile unsigned long tt = 0xffff; while (tt--); } while (0);
+    //     i++;
+    // }
 
 #ifdef DISABLE_AUTOENG
     phy_val = v3s_phy_read(dev, priv->phy_addr, MII_MCR);
@@ -421,18 +426,19 @@ static void v3s_mac_txdone(FAR struct v3s_mac_dev_s *priv)
     /* Check if a Tx was pending */
     while (priv->tx_pending) {
         txdes = v3s_mac_current_clean_txdes(priv);
+        up_flush_dcache((uintptr_t)txdes, (uintptr_t)txdes + sizeof(*txdes));
         up_invalidate_dcache((uintptr_t)txdes, (uintptr_t)txdes + sizeof(*txdes));
         /* txdes owned by dma */
         if (txdes->txdes1 & TXDES_1ST_OWN) {
-            break;
+            goto next;
         }
         /* TODO: check for excessive and late collisions */
         /* txdes reset */
         txdes->txdes1 = 0;
         txdes->txdes2 = (1 << 24);
         txdes->txdes3 = 0;
-        priv->tx_clean_pointer = (priv->tx_clean_pointer + 1) &
-                                (CONFIG_V3S_MAC_TXDES_NUM - 1);
+    next:
+        priv->tx_clean_pointer = (priv->tx_clean_pointer + 1) & (CONFIG_V3S_MAC_TXDES_NUM - 1);
         priv->tx_pending--;
         up_clean_dcache((uintptr_t)txdes, (uintptr_t)txdes + sizeof(*txdes));
     }
@@ -463,38 +469,31 @@ static int v3s_mac_transmit(struct v3s_mac_dev_s *priv)
     struct v3s_mac_txdes_s *txdes;
 
     int len = priv->net_dev.d_len;
-
-    up_invalidate_dcache((uintptr_t)(priv->txdes), (uintptr_t)(priv->txdes) + sizeof(priv->txdes));
-
     txdes = v3s_mac_current_txdes(priv);
-    arm_isb();
-    
+
     /* Verify that the hardware is ready to send another packet.  If we get
     * here, then we are committed to sending a packet; Higher level logic
     * must have assured that there is no transmission in progress.
     */
     len = len < ETH_ZLEN ? ETH_ZLEN : len;
-    
-    up_clean_dcache((uint32_t)priv->net_dev.d_buf, (uint32_t)priv->net_dev.d_buf + len);
 
     /* Send the packet: address=priv->net_dev.d_buf, length=priv->net_dev.d_len */
-    txdes->txdes3 = (uint32_t)priv->net_dev.d_buf;
+    txdes->txdes3 = (uint32_t)(priv->net_dev.d_buf);
     txdes->txdes2 = TXDES_2ST_INT_CTRL | TXDES_2ST_LAST_DESC | \
                     TXDES_2ST_FIR_DESC | V3S_SET_TXDES_BUF_SIZE(len) | (1 << 24);
     txdes->txdes1 = TXDES_1ST_OWN;
-    arm_isb();
 
     priv->tx_index = (priv->tx_index + 1) & (CONFIG_V3S_MAC_TXDES_NUM - 1);
     priv->tx_pending++;
     
-    up_clean_dcache((uintptr_t)txdes, (uintptr_t)txdes + sizeof(*txdes));
+    up_flush_dcache((uintptr_t)txdes->txdes3, (uintptr_t)txdes->txdes3 + len);
+    up_flush_dcache((uintptr_t)txdes, (uintptr_t)txdes + sizeof(*txdes));
 
     /* Start TX */
     reg = getreg32(priv->iobase_addr + GETH_TX_CTL1);
-    arm_isb();
     reg |= TX_DMA_START | TX_DMA_EN;
     putreg32(reg, priv->iobase_addr + GETH_TX_CTL1);
-    arm_isb();
+    UP_ISB();
 
     /* Setup the TX timeout watchdog (perhaps restarting the timer) */
     wd_start(&priv->v3s_txtimeout, V3S_MAC_TXTIMEOUT,
@@ -510,7 +509,6 @@ v3s_mac_current_rxdes(FAR struct v3s_mac_dev_s *priv) {
 }
 
 
-static uint32_t rx_cnt = 0;
 #define ERR_FLAGS (RXDES_1ST_PAYLOAD_ERR | RXDES_1ST_CRC_ERR | RXDES_1ST_PHY_ERR | \
     RXDES_1ST_LENGTH_ERR | RXDES_1ST_COL_ERR | RXDES_1ST_HEADER_ERR| \
     RXDES_1ST_OVERFLOW_ERR | RXDES_1ST_SAF_FAIL | RXDES_1ST_NO_ENOUGH_BUF_ERR)
@@ -529,25 +527,29 @@ static void v3s_mac_receive(FAR struct v3s_mac_dev_s *priv)
     index_s = 0;
     index_e = 0;
     index_s = priv->rx_index;
-    arm_isb();
+
     while (rx_descp_num--) {
         rxdes = v3s_mac_current_rxdes(priv);
-        arm_isb();
+        // up_flush_dcache((uintptr_t)rxdes, (uintptr_t)rxdes + sizeof(*rxdes));
+        // up_flush_dcache_all();
         up_invalidate_dcache((uintptr_t)rxdes, (uintptr_t)rxdes + sizeof(*rxdes));
         if (rxdes->rxdes1 & RXDES_1ST_OWN) {
             index_e = priv->rx_index;
-            arm_isb();
-            break;
+            goto next;
         }
+
         len = GET_RX_LEN_FROM_DESC(rxdes->rxdes1);
-        data = (uint8_t *)rxdes->rxdes3;
-        arm_isb();
-        up_invalidate_dcache((uintptr_t)data, (uintptr_t)data + len);
+        data = (uint8_t *)(rxdes->rxdes3);
+        UP_DMB();
+        UP_ISB();
+
+        up_flush_dcache((uintptr_t)data, (uintptr_t)data + 2048);
+        up_invalidate_dcache((uintptr_t)data, (uintptr_t)data + 2048);
 
         /* Copy the data data from the hardware to priv->net_dev.d_buf.  Set
         * amount of data in priv->net_dev.d_len
         */
-        memcpy(priv->net_dev.d_buf, data, len);
+        priv->net_dev.d_buf = data;
         priv->net_dev.d_len = len;
 
 #ifdef CONFIG_NET_PKT
@@ -558,7 +560,7 @@ static void v3s_mac_receive(FAR struct v3s_mac_dev_s *priv)
         if (BUF->type == HTONS(ETHTYPE_IP)) {
             /* Receive an IPv4 packet from the network device */
             ipv4_input(&priv->net_dev);
-            
+
             if (priv->net_dev.d_len > 0) {
                 /* And send the packet */
                 v3s_mac_transmit(priv);
@@ -595,22 +597,15 @@ static void v3s_mac_receive(FAR struct v3s_mac_dev_s *priv)
             }
         }
 #endif
+        memset(rxdes->rxdes3, 0, RX_BUF_SIZE);
+        rxdes->rxdes1 = RXDES_1ST_OWN;
+        UP_DSB();
+        up_clean_dcache((uint32_t)rxdes->rxdes3, (uint32_t)rxdes->rxdes3 + RX_BUF_SIZE);
+        up_clean_dcache((uint32_t)rxdes, (uint32_t)rxdes + sizeof(*rxdes));
+next:
         priv->rx_index = (priv->rx_index + 1) & (CONFIG_V3S_MAC_RXDES_NUM - 1);
-        arm_isb();
     }
 
-    loop = (index_s == index_e) ? CONFIG_V3S_MAC_RXDES_NUM : 
-           (index_e > index_s) ? (index_e - index_s) : (CONFIG_V3S_MAC_RXDES_NUM - index_s + index_e);
-    arm_isb();
-    while (loop--) {
-        rxdes = &priv->rxdes[index_s];
-        rxdes->rxdes1 = RXDES_1ST_OWN;
-        arm_isb();
-        up_clean_dcache((uintptr_t)rxdes, (uintptr_t)rxdes + sizeof(rxdes));
-        index_s = (index_s + 1) & (CONFIG_V3S_MAC_RXDES_NUM - 1);
-        arm_isb();
-    }
-    
     return;
 }
 
@@ -630,14 +625,6 @@ static void v3s_mac_interrupt_work(FAR void *arg)
         goto out;
     }
 
-    /* RGMII Interrupt */
-    // ...
-
-    /* Handle interrupts according to status bit settings */
-    if (status & (RX_INT | RX_BUF_UA_INT)) {
-        v3s_mac_receive(priv);
-    }
-
     if (status & TX_BUF_UA_INT) {
 
     }
@@ -646,9 +633,16 @@ static void v3s_mac_interrupt_work(FAR void *arg)
         v3s_mac_txdone(priv);
     }
 
+    /* Handle interrupts according to status bit settings */
+    if (status & (RX_INT | RX_BUF_UA_INT)) {
+        v3s_mac_receive(priv);
+    }
+
+    /* RGMII Interrupt */
+    // ...
     if (status & RGMII_LINK_STA_INT)
     {
-        printf("\r\n---> RGMII Link Status Change!");
+        printf("\n---> RGMII Link Status Change!");
     }
 out:
     ninfo("ISR-done\n");
@@ -656,6 +650,7 @@ out:
 
     putreg32((priv->status & 0x3FFF), priv->iobase_addr + GETH_INT_STA);
     putreg32(ENABLE_IT_FLAGS, priv->iobase_addr + GETH_INT_EN);
+
     /* Re-enable Ethernet interrupts */
     up_enable_irq(priv->irq_no);
 
@@ -675,14 +670,6 @@ static int v3s_mac_irq_handler(int irq, FAR void *context, FAR void *arg)
     /* Recod status register */
     priv->status = getreg32(priv->iobase_addr + GETH_INT_STA);
     
-    if (priv->status & (TX_INT | TX_EARLY_INT)) {
-      /* If a TX transfer just completed, then cancel the TX timeout so
-       * there will be do race condition between any subsequent timeout
-       * expiration and the deferred interrupt processing.
-       */
-       wd_cancel(&priv->v3s_txtimeout);
-    }
-
     /* Schedule to perform the interrupt processing on the worker thread. */
     work_queue(V3S_MAC_MAWORK, &priv->v3s_irqwork, v3s_mac_interrupt_work, priv, 0);
 
@@ -692,15 +679,20 @@ static int v3s_mac_irq_handler(int irq, FAR void *context, FAR void *arg)
 
 static int v3s_mac_reset(FAR struct v3s_mac_dev_s *priv)
 {
-    int try;
     long reg;
+    volatile int try = 0xfffffff;
+
     /* Reset Emac */
-    try = 0xfffffff;
     putreg32(0x01, priv->iobase_addr + GETH_BASIC_CTL1);
     do {
         reg = getreg32(priv->iobase_addr + GETH_BASIC_CTL1) & 0x01;
         --try;
     } while (reg && try > 0);
+    
+    if (try <= 0) {
+        printf("\r\nv3s emac reset fail!\n");
+    }
+
     return (try == 0x00);
 }
 
@@ -727,6 +719,7 @@ static int v3s_descripter_init(FAR struct v3s_mac_dev_s *priv)
 {
     int i;
     unsigned char *rxdesp_kmem = NULL;
+    unsigned char *txdesp_kmem = NULL;
     struct v3s_mac_txdes_s *txdes = NULL;
     struct v3s_mac_rxdes_s *rxdes = NULL;
 
@@ -744,6 +737,13 @@ static int v3s_descripter_init(FAR struct v3s_mac_dev_s *priv)
     }
     memset(rxdesp_kmem, 0, CONFIG_V3S_MAC_RXDES_NUM * RX_BUF_SIZE);
 
+    txdesp_kmem = kmm_memalign(128, CONFIG_V3S_MAC_TXDES_NUM * TX_BUF_SIZE);
+    if (!txdesp_kmem) {
+        return -1;
+    }
+    memset(txdesp_kmem, 0, CONFIG_V3S_MAC_TXDES_NUM * TX_BUF_SIZE);
+
+
     /* Initialize Rx descriptors */
     for (i = 0; i < CONFIG_V3S_MAC_RXDES_NUM; i++)
     {
@@ -754,8 +754,8 @@ static int v3s_descripter_init(FAR struct v3s_mac_dev_s *priv)
       rxdes[i].rxdes4 = (uint32_t)(rxdes + i + 1); /* Next ring */
     }
     rxdes[CONFIG_V3S_MAC_RXDES_NUM - 1].rxdes4 = (uint32_t)rxdes;
+    up_clean_dcache((uintptr_t)rxdes, (uintptr_t)rxdes + sizeof(priv->rxdes));
 
-    up_invalidate_dcache((uintptr_t)rxdes, (uintptr_t)rxdes + sizeof(priv->rxdes));
 
     /* Initialize Tx descriptors */
     for (i = 0; i < CONFIG_V3S_MAC_TXDES_NUM; i++)
@@ -767,9 +767,9 @@ static int v3s_descripter_init(FAR struct v3s_mac_dev_s *priv)
       txdes[i].txdes4 = (uint32_t)(txdes + i + 1);
     }
     txdes[CONFIG_V3S_MAC_TXDES_NUM - 1].txdes4 = (uint32_t)txdes;
-
     up_clean_dcache((uintptr_t)txdes, (uintptr_t)txdes + sizeof(priv->txdes));
     
+
     /* Config descripptionn to registers */
     putreg32((uint32_t)txdes, priv->iobase_addr + GETH_TX_DESC_LIST);
     putreg32((uint32_t)rxdes, priv->iobase_addr + GETH_RX_DESC_LIST);
@@ -915,5 +915,11 @@ int v3s_mac_device_initialize(int index)
 
 void arm_netinitialize(void)
 {
-  v3s_mac_device_initialize(0);
+    // up_disable_dcache();
+    // up_disable_icache();
+    // up_clean_dcache_all();
+    // up_invalidate_dcache_all();
+    // up_flush_dcache_all();
+
+    v3s_mac_device_initialize(0);
 }

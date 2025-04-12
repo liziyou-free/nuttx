@@ -47,7 +47,7 @@
 
 #define V3S_DATA_SECTION_PA          0x41000000  /* 0x41000000-0x43ffffff 48MB */
 #define V3S_DATA_SECTION_VA          0x41000000  /* 0x41000000-0x43ffffff 48MB */
-#define V3S_DATAs_SECTION_SIZE       0x03000000
+#define V3S_DATA_SECTION_SIZE        0x03000000
 
 /****************************************************************************
  * Public Function Prototypes

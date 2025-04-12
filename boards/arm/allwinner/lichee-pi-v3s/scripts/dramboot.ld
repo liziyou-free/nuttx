@@ -24,8 +24,8 @@ ENTRY(__start)
 /* Specify the memory areas */
 MEMORY
 {
-  ROM (rx)       : ORIGIN = 0x40000000, LENGTH = 8M
-  RAM (xrw)      : ORIGIN = 0x40800000, LENGTH = 56M
+  ROM (xr)      : ORIGIN = 0x40000000, LENGTH = 16M
+  RAM (xrw)      : ORIGIN = 0x40800000, LENGTH = 48M
 }
 
 
@@ -80,7 +80,7 @@ SECTIONS
        *(.data.rel)
        *(.data.rel.*)
        _edata = .;
-  } > RAM AT > ROM
+  } > RAM
 
   .bss (NOLOAD) : {                     /* BSS */
        _sbss = .;
