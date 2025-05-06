@@ -59,6 +59,11 @@
 #include "mmcsd_csd.h"
 #include "mmcsd_extcsd.h"
 
+// #undef finfo
+// #define finfo printf
+// #undef ferr
+// #define ferr printf
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -120,7 +125,8 @@
         } \
     } while (0)
 #else
-#  define MMCSD_USLEEP(usec) nxsig_usleep(usec)
+// #  define MMCSD_USLEEP(usec) nxsig_usleep(usec)
+#  define MMCSD_USLEEP(usec)  {int tt=usec*100; do{}while(tt--); }
 #endif
 
 /****************************************************************************
@@ -332,12 +338,10 @@ static int mmcsd_sendcmdpoll(FAR struct mmcsd_state_s *priv, uint32_t cmd,
   int ret;
 
   /* Send the command */
-
   ret = SDIO_SENDCMD(priv->dev, cmd, arg);
   if (ret == OK)
     {
       /* Then poll-wait until the response is available */
-
       ret = SDIO_WAITRESPONSE(priv->dev, cmd);
       if (ret != OK)
         {
@@ -346,7 +350,6 @@ static int mmcsd_sendcmdpoll(FAR struct mmcsd_state_s *priv, uint32_t cmd,
                cmd, ret);
         }
     }
-
   return ret;
 }
 
@@ -4424,8 +4427,8 @@ static int mmcsd_removed(FAR struct mmcsd_state_s *priv)
     }
 
   /* Disable clocking to the card */
-
   SDIO_CLOCK(priv->dev, CLOCK_SDIO_DISABLED);
+
   return OK;
 }
 
@@ -4639,6 +4642,17 @@ int mmcsd_slotinitialize(int minor, FAR struct sdio_dev_s *dev)
          ((uint64_t)priv->part[0].nblocks << priv->blockshift) >> 10,
          priv->widebus ? "4-bits" : "1-bit",
          mmc_get_mode_name(priv->mode));
+  
+  uint8_t readbuffer[512] = {0};
+  uint8_t writedata[512] = {[0]=0x55, [1]=0xaa, [2 ... 253]=0x88, [254]=0x33, [255]=0xEE, [256 ... 509]=0xEF, [510 ... 511]=0xAA};
+  // printf("++++++++++++++++++++++++++++%x %x+++++++++++++++++...\n", writedata[0], writedata[511]);
+  // mmcsd_readsingle(&priv->part[0], readbuffer, 0);
+  // mmcsd_writesingle(&priv->part[0], writedata, 0);
+  // mmcsd_readsingle(&priv->part[0], readbuffer, 0);
+  // for (int i = 0; i < 512; ++i)
+  // {
+  //   printf("%x, ", readbuffer[i]);
+  // }
 
   return OK;
 

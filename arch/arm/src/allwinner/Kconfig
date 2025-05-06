@@ -21,6 +21,11 @@ config ARCH_CHIP_ALLWINNER_CORTEXA7
 	select ARMV7A_HAVE_GTM
 	select ARMV7A_HAVE_PTM
 
+	select ARCH_HAVE_SDIO
+	select SDIO_BLOCKSETUP
+	select MMCSD
+	select MMCSD_SDIO
+
 endchoice # Allwinner Chip Selection
 
 endmenu   # "Allwinner Chip Selection"

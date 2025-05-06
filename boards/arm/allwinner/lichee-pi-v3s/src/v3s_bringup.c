@@ -56,10 +56,16 @@
  *     Called from the NSH library
  *
  ****************************************************************************/
+extern void v3s_gpio_initialize(void);
+extern  int v3s_sdinitialize(int minor);
 
 int v3s_bringup(void)
 {
-  int ret = OK;
+  int ret = 0;
+
+  v3s_gpio_initialize();
+  
+  v3s_sdinitialize(0);
 
 #ifdef CONFIG_INPUT_BUTTONS
   /* Register the BUTTON driver */

@@ -20,7 +20,7 @@
 
 include $(TOPDIR)/Make.defs
 
-CSRCS = v3s_boot.c v3s_bringup.c v3s_leds.c v3s_gpio.c v3s_timer.c v3s_eth.c
+CSRCS = v3s_boot.c v3s_bringup.c v3s_leds.c v3s_gpio.c v3s_timer.c v3s_eth.c v3s_sdmmc.c
 
 ifeq ($(CONFIG_BOARDCTL),y)
 CSRCS += v3s_appinit.c

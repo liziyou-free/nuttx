@@ -1,125 +1,29 @@
 #include <nuttx/config.h>
 #include <stdbool.h>
 #include "v3s-armv7a.h"
+#include "v3s_gpio.h"
 #include "arm_internal.h"
 #include <nuttx/board.h>
 #include <nuttx/config.h>
 #include <nuttx/ioexpander/gpio.h>
 
 
-#define _V3S_GPIO_BASE_     (0X01C20800UL)
-
-
-#define V3S_GPIOB        1    /* 10 I/O */
-#define V3S_GPIOC        2    /* 4  I/O */
-#define V3S_GPIOE        4    /* 25 I/O */
-#define V3S_GPIOF        5    /* 7  I/O */
-#define V3S_GPIOG        6    /* 6  I/O */
-
-
-#define PIN(x)           x
-
-
-#define GPIO_LEVEL_LOW        0x00
-#define GPIO_LEVEL_HIGH       0x01
-
-
-#define GPIO_PULL_DISABLE     0X00
-#define GPIO_PULL_UP          0X01
-#define GPIO_PULL_DOWN        0X02
-
-
-#define GPIO_DRVING_0         0x00
-#define GPIO_DRVING_1         0x01
-#define GPIO_DRVING_2         0x02
-#define GPIO_DRVING_3         0x03
-
-
-#define GPIOB0_MUX_INPUT      0X00
-#define GPIOB0_MUX_OUTPUT     0X01
-#define GPIOB0_MUX_U2TX       0X02
-#define GPIOB0_MUX_EINT0      0X06
-#define GPIOB0_MUX_DISABLE    0X07
-
-
-#define GPIOB1_MUX_INPUT      0X00
-#define GPIOB1_MUX_OUTPUT     0X01
-#define GPIOB1_MUX_U2RX       0X02
-#define GPIOB1_MUX_EINT1      0X06
-#define GPIOB1_MUX_DISABLE    0X07
-
-
-#define GPIOB2_MUX_INPUT      0X00
-#define GPIOB2_MUX_OUTPUT     0X01
-#define GPIOB2_MUX_U2RTS      0X02
-#define GPIOB2_MUX_EINT2      0X06
-#define GPIOB2_MUX_DISABLE    0X07
-
-
-#define GPIOB3_MUX_INPUT      0X00
-#define GPIOB3_MUX_OUTPUT     0X01
-#define GPIOB3_MUX_U2CTS      0X02
-#define GPIOB3_MUX_EINT3      0X06
-#define GPIOB3_MUX_DISABLE    0X07
-
-
-#define GPIOB4_MUX_INPUT      0X00
-#define GPIOB4_MUX_OUTPUT     0X01
-#define GPIOB4_MUX_PWM0       0X02
-#define GPIOB4_MUX_EINT4      0X06
-#define GPIOB4_MUX_DISABLE    0X07
-
-
-#define GPIOB5_MUX_INPUT      0X00
-#define GPIOB5_MUX_OUTPUT     0X01
-#define GPIOB5_MUX_PWM1       0X02
-#define GPIOB5_MUX_EINT5      0X06
-#define GPIOB5_MUX_DISABLE    0X07
-
-
-#define GPIOB6_MUX_INPUT      0X00
-#define GPIOB6_MUX_OUTPUT     0X01
-#define GPIOB6_MUX_TWI0SCK    0X02
-#define GPIOB6_MUX_EINT6      0X06
-#define GPIOB6_MUX_DISABLE    0X07
-
-
-#define GPIOB7_MUX_INPUT      0X00
-#define GPIOB7_MUX_OUTPUT     0X01
-#define GPIOB7_MUX_TWI0SDA    0X02
-#define GPIOB7_MUX_EINT7      0X06
-#define GPIOB7_MUX_DISABLE    0X07
-
-
-#define GPIOB8_MUX_INPUT      0X00
-#define GPIOB8_MUX_OUTPUT     0X01
-#define GPIOB8_MUX_TWI1SCK    0X02
-#define GPIOB8_MUX_U0TX       0X03
-#define GPIOB8_MUX_EINT8      0X06
-#define GPIOB8_MUX_DISABLE    0X07
-
-
-#define GPIOB9_MUX_INPUT      0X00
-#define GPIOB9_MUX_OUTPUT     0X01
-#define GPIOB9_MUX_TWI1SDA    0X02
-#define GPIOB9_MUX_U0RX       0X03
-#define GPIOB9_MUX_EINT9      0X06
-#define GPIOB9_MUX_DISABLE    0X07
-
-
 #define _V3S_GET_CFG_REG_(GROUP, INDEX) \
-                            ((GROUP * 0x24 + INDEX * 0X04) + _V3S_GPIO_BASE_)
+                            ((GROUP * 0x24 + INDEX * 0X04) + V3S_PIO_BASE)
 #define _V3S_GET_DAT_REG_(GROUP) \
-                            ((GROUP * 0x24 + 0x10) + _V3S_GPIO_BASE_)
+                            ((GROUP * 0x24 + 0x10) + V3S_PIO_BASE)
 #define _V3S_GET_DRV_REG_(GROUP, INDEX) \
-                            ((GROUP * 0x24 + 0x14 + INDEX * 0X04) + _V3S_GPIO_BASE_)
+                            ((GROUP * 0x24 + 0x14 + INDEX * 0X04) + V3S_PIO_BASE)
 #define _V3S_GET_PULL_REG_(GROUP, INDEX) \
-                            ((GROUP * 0x24 + 0x1C + INDEX * 0X04) + _V3S_GPIO_BASE_)
+                            ((GROUP * 0x24 + 0x1C + INDEX * 0X04) + V3S_PIO_BASE)
 #define _V3S_GET_INT_CFG_REG(GROUP, INDEX) \
-                            ((0x200 + GROUP * 0x20 + INDEX * 0X04) + _V3S_GPIO_BASE_)
-#define _V3S_GET_INT_CTL_(GROUP)    ((0x200 + GROUP * 0x20 + 0x14) + _V3S_GPIO_BASE_)
-#define _V3S_GET_INT_STA_(GROUP)    ((0x200 + GROUP * 0x20 + 0x18) + _V3S_GPIO_BASE_)
-#define _V3S_GET_INT_DEB_(GROUP)    ((0x200 + GROUP * 0x20 + 0x1C) + _V3S_GPIO_BASE_)
+                            ((0x200 + GROUP * 0x20 + INDEX * 0X04) + V3S_PIO_BASE)
+#define _V3S_GET_INT_CTL_(GROUP)    ((0x200 + GROUP * 0x20 + 0x14) + V3S_PIO_BASE)
+#define _V3S_GET_INT_STA_(GROUP)    ((0x200 + GROUP * 0x20 + 0x18) + V3S_PIO_BASE)
+#define _V3S_GET_INT_DEB_(GROUP)    ((0x200 + GROUP * 0x20 + 0x1C) + V3S_PIO_BASE)
+
+
+#define GET_ARRAY_ELEMENTS(x) (sizeof(x) / sizeof(x[0]))
 
 
 /* 
@@ -171,7 +75,11 @@ void set_gpio_level(uint8_t gpio, uint8_t pin, bool level)
     reg_adr = _V3S_GET_DAT_REG_(gpio);
     reg_dat = getreg32(reg_adr);
     reg_dat &= ~(1 << pin);
-    reg_dat |= (1 << pin);
+    if (level) {
+        reg_dat |= (1 << pin);
+    } else {
+        reg_dat &= ~(1 << pin);
+    }
     putreg32(reg_dat, reg_adr);
     return;
 }
@@ -306,9 +214,6 @@ static const struct gpio_operations_s pin_output_ops =
   .go_attach = NULL,
   .go_enable = NULL,
 };
-
-
-#define GET_ARRAY_ELEMENTS(x) (sizeof(x) / sizeof(x[0]))
 
 
 void v3s_gpio_initialize(void)

@@ -75,8 +75,6 @@ int board_app_initialize(uintptr_t arg)
 #else
   /* Perform board-specific initialization */
 
-  v3s_gpio_initialize();
-
   return v3s_bringup();
 #endif
 }

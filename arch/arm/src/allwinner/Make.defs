@@ -21,7 +21,7 @@
 include armv7-a/Make.defs
 
 # qemu-specific C source files
-CHIP_CSRCS  = v3s_boot.c v3s_serial.c v3s_irq.c v3s_timer.c v3s_memorymap.c v3s_idle.c
+CHIP_CSRCS  = v3s_boot.c v3s_serial.c v3s_irq.c v3s_timer.c v3s_memorymap.c v3s_idle.c v3s_ccmu.c
 
 ifeq ($(CONFIG_SMP),y)
   CHIP_CSRCS += v3s_cpuboot.c

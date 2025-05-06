@@ -515,26 +515,19 @@ v3s_mac_current_rxdes(FAR struct v3s_mac_dev_s *priv) {
     
 static void v3s_mac_receive(FAR struct v3s_mac_dev_s *priv)
 {
-    volatile uint32_t loop;
-    volatile uint32_t index_s;
-    volatile uint32_t index_e;
     volatile uint32_t len;
     volatile uint8_t *data;
     volatile int32_t rx_descp_num;
     volatile struct v3s_mac_rxdes_s *rxdes;
     
     rx_descp_num = CONFIG_V3S_MAC_RXDES_NUM;
-    index_s = 0;
-    index_e = 0;
-    index_s = priv->rx_index;
 
     while (rx_descp_num--) {
+
         rxdes = v3s_mac_current_rxdes(priv);
-        // up_flush_dcache((uintptr_t)rxdes, (uintptr_t)rxdes + sizeof(*rxdes));
-        // up_flush_dcache_all();
         up_invalidate_dcache((uintptr_t)rxdes, (uintptr_t)rxdes + sizeof(*rxdes));
+
         if (rxdes->rxdes1 & RXDES_1ST_OWN) {
-            index_e = priv->rx_index;
             goto next;
         }
 
@@ -543,7 +536,7 @@ static void v3s_mac_receive(FAR struct v3s_mac_dev_s *priv)
         UP_DMB();
         UP_ISB();
 
-        up_flush_dcache((uintptr_t)data, (uintptr_t)data + 2048);
+        // up_flush_dcache((uintptr_t)data, (uintptr_t)data + 2048);
         up_invalidate_dcache((uintptr_t)data, (uintptr_t)data + 2048);
 
         /* Copy the data data from the hardware to priv->net_dev.d_buf.  Set
@@ -658,7 +651,7 @@ out:
 }
 
 
-static int v3s_mac_irq_handler(int irq, FAR void *context, FAR void *arg)
+static int v3s_mac_irq_handler (int irq, FAR void *context, FAR void *arg)
 {
     struct v3s_mac_dev_s *priv = (struct v3s_mac_dev_s *)arg;
 
@@ -915,11 +908,5 @@ int v3s_mac_device_initialize(int index)
 
 void arm_netinitialize(void)
 {
-    // up_disable_dcache();
-    // up_disable_icache();
-    // up_clean_dcache_all();
-    // up_invalidate_dcache_all();
-    // up_flush_dcache_all();
-
     v3s_mac_device_initialize(0);
 }

@@ -129,6 +129,10 @@
 #define V3S_TIM0_IRQ                50
 #define V3S_TIM1_IRQ                51
 #define V3S_TIM2_IRQ                52
+#define V3S_SDMMC0_IRQ              92
+#define V3S_SDMMC1_IRQ              93
+#define V3S_SDMMC2_IRQ              94
 #define V3S_EMAC_IRQ                114
+
 
 #endif /* __ALLWINNER_V3S__ */

@@ -1,0 +1,364 @@
+#include "arch/allwinner/v3s_platform.h"
+
+
+#define V3S_GPIOB             1    /* 10 I/O */
+#define V3S_GPIOC             2    /* 4  I/O */
+#define V3S_GPIOE             4    /* 25 I/O */
+#define V3S_GPIOF             5    /* 7  I/O */
+#define V3S_GPIOG             6    /* 6  I/O */
+
+
+#define PIN(x)                (x)
+
+
+/*
+ *\note GPIO input configuration
+*/
+#define GPIO_PULL_DISABLE     0X00
+#define GPIO_PULL_UP          0X01
+#define GPIO_PULL_DOWN        0X02
+
+
+/*
+ *\note GPIO output level configuration
+*/
+#define GPIO_LEVEL_LOW        0x00
+#define GPIO_LEVEL_HIGH       0x01
+
+
+/*
+ *\note GPIO drive strength configuration
+*/
+#define GPIO_DRVING_0         0x00
+#define GPIO_DRVING_1         0x01
+#define GPIO_DRVING_2         0x02
+#define GPIO_DRVING_3         0x03
+
+
+/*
+ *\note GPIO multiplex function configuration
+*/
+
+#define GPIOB0_MUX_INPUT      0X00
+#define GPIOB0_MUX_OUTPUT     0X01
+#define GPIOB0_MUX_U2TX       0X02
+#define GPIOB0_MUX_EINT0      0X06
+#define GPIOB0_MUX_DISABLE    0X07
+
+#define GPIOB1_MUX_INPUT      0X00
+#define GPIOB1_MUX_OUTPUT     0X01
+#define GPIOB1_MUX_U2RX       0X02
+#define GPIOB1_MUX_EINT1      0X06
+#define GPIOB1_MUX_DISABLE    0X07
+
+#define GPIOB2_MUX_INPUT      0X00
+#define GPIOB2_MUX_OUTPUT     0X01
+#define GPIOB2_MUX_U2RTS      0X02
+#define GPIOB2_MUX_EINT2      0X06
+#define GPIOB2_MUX_DISABLE    0X07
+
+#define GPIOB3_MUX_INPUT      0X00
+#define GPIOB3_MUX_OUTPUT     0X01
+#define GPIOB3_MUX_U2CTS      0X02
+#define GPIOB3_MUX_EINT3      0X06
+#define GPIOB3_MUX_DISABLE    0X07
+
+#define GPIOB4_MUX_INPUT      0X00
+#define GPIOB4_MUX_OUTPUT     0X01
+#define GPIOB4_MUX_PWM0       0X02
+#define GPIOB4_MUX_EINT4      0X06
+#define GPIOB4_MUX_DISABLE    0X07
+
+#define GPIOB5_MUX_INPUT      0X00
+#define GPIOB5_MUX_OUTPUT     0X01
+#define GPIOB5_MUX_PWM1       0X02
+#define GPIOB5_MUX_EINT5      0X06
+#define GPIOB5_MUX_DISABLE    0X07
+
+#define GPIOB6_MUX_INPUT      0X00
+#define GPIOB6_MUX_OUTPUT     0X01
+#define GPIOB6_MUX_TWI0SCK    0X02
+#define GPIOB6_MUX_EINT6      0X06
+#define GPIOB6_MUX_DISABLE    0X07
+
+#define GPIOB7_MUX_INPUT      0X00
+#define GPIOB7_MUX_OUTPUT     0X01
+#define GPIOB7_MUX_TWI0SDA    0X02
+#define GPIOB7_MUX_EINT7      0X06
+#define GPIOB7_MUX_DISABLE    0X07
+
+
+#define GPIOB8_MUX_INPUT      0X00
+#define GPIOB8_MUX_OUTPUT     0X01
+#define GPIOB8_MUX_TWI1SCK    0X02
+#define GPIOB8_MUX_U0TX       0X03
+#define GPIOB8_MUX_EINT8      0X06
+#define GPIOB8_MUX_DISABLE    0X07
+
+#define GPIOB9_MUX_INPUT      0X00
+#define GPIOB9_MUX_OUTPUT     0X01
+#define GPIOB9_MUX_TWI1SDA    0X02
+#define GPIOB9_MUX_U0RX       0X03
+#define GPIOB9_MUX_EINT9      0X06
+#define GPIOB9_MUX_DISABLE    0X07
+
+
+#define GPIOC0_MUX_INPUT      0X00
+#define GPIOC0_MUX_OUTPUT     0X01
+#define GPIOC0_MUX_SDC2CLK    0X02
+#define GPIOC0_MUX_SPI0MISO   0X03
+#define GPIOC0_MUX_DISABLE    0X07
+
+#define GPIOC1_MUX_INPUT      0X00
+#define GPIOC1_MUX_OUTPUT     0X01
+#define GPIOC1_MUX_SDC2CMD    0X02
+#define GPIOC1_MUX_SPI0CLK    0X03
+#define GPIOC1_MUX_DISABLE    0X07
+
+#define GPIOC2_MUX_INPUT      0X00
+#define GPIOC2_MUX_OUTPUT     0X01
+#define GPIOC2_MUX_SDC2RST    0X02
+#define GPIOC2_MUX_SPI0CS     0X03
+#define GPIOC2_MUX_DISABLE    0X07
+
+#define GPIOC3_MUX_INPUT      0X00
+#define GPIOC3_MUX_OUTPUT     0X01
+#define GPIOC3_MUX_SDC2DAT0   0X02
+#define GPIOC3_MUX_SPI0MOSI   0X03
+#define GPIOC3_MUX_DISABLE    0X07
+
+
+#define GPIOE0_MUX_INPUT      0X00
+#define GPIOE0_MUX_OUTPUT     0X01
+#define GPIOE0_MUX_CSIPCLK    0X02
+#define GPIOE0_MUX_LCDCLK     0X03
+#define GPIOE0_MUX_DISABLE    0X07
+
+#define GPIOE1_MUX_INPUT      0X00
+#define GPIOE1_MUX_OUTPUT     0X01
+#define GPIOE1_MUX_CSIMCLK    0X02
+#define GPIOE1_MUX_LCDDE      0X03
+#define GPIOE1_MUX_DISABLE    0X07
+
+#define GPIOE2_MUX_INPUT      0X00
+#define GPIOE2_MUX_OUTPUT     0X01
+#define GPIOE2_MUX_CSIHSYNC   0X02
+#define GPIOE2_MUX_LCDHSYNC   0X03
+#define GPIOE2_MUX_DISABLE    0X07
+
+#define GPIOE2_MUX_INPUT      0X00
+#define GPIOE3_MUX_OUTPUT     0X01
+#define GPIOE3_MUX_CSIVSYNC   0X02
+#define GPIOE3_MUX_LCDVSYNC   0X03
+#define GPIOE3_MUX_DISABLE    0X07
+
+#define GPIOE4_MUX_INPUT      0X00
+#define GPIOE4_MUX_OUTPUT     0X01
+#define GPIOE4_MUX_CSID0      0X02
+#define GPIOE4_MUX_LCDD2      0X03
+#define GPIOE4_MUX_DISABLE    0X07
+
+#define GPIOE5_MUX_INPUT      0X00
+#define GPIOE5_MUX_OUTPUT     0X01
+#define GPIOE5_MUX_CSID1      0X02
+#define GPIOE5_MUX_LCDD3      0X03
+#define GPIOE5_MUX_DISABLE    0X07
+
+#define GPIOE6_MUX_INPUT      0X00
+#define GPIOE6_MUX_OUTPUT     0X01
+#define GPIOE6_MUX_CSID2      0X02
+#define GPIOE6_MUX_LCDD4      0X03
+#define GPIOE6_MUX_DISABLE    0X07
+
+#define GPIOE7_MUX_INPUT      0X00
+#define GPIOE7_MUX_OUTPUT     0X01
+#define GPIOE7_MUX_CSID3      0X02
+#define GPIOE7_MUX_LCDD5      0X03
+#define GPIOE7_MUX_DISABLE    0X07
+
+#define GPIOE8_MUX_INPUT      0X00
+#define GPIOE8_MUX_OUTPUT     0X01
+#define GPIOE8_MUX_CSID4      0X02
+#define GPIOE8_MUX_LCDD6      0X03
+#define GPIOE8_MUX_DISABLE    0X07
+
+#define GPIOE9_MUX_INPUT      0X00
+#define GPIOE9_MUX_OUTPUT     0X01
+#define GPIOE9_MUX_CSID5      0X02
+#define GPIOE9_MUX_LCDD7      0X03
+#define GPIOE9_MUX_DISABLE    0X07
+
+#define GPIOE10_MUX_INPUT     0X00
+#define GPIOE10_MUX_OUTPUT    0X01
+#define GPIOE10_MUX_CSID6     0X02
+#define GPIOE10_MUX_LCDD10    0X03
+#define GPIOE10_MUX_DISABLE   0X07
+
+#define GPIOE11_MUX_INPUT     0X00
+#define GPIOE11_MUX_OUTPUT    0X01
+#define GPIOE11_MUX_CSID7     0X02
+#define GPIOE11_MUX_LCDD11    0X03
+#define GPIOE11_MUX_DISABLE   0X07
+
+#define GPIOE12_MUX_INPUT     0X00
+#define GPIOE12_MUX_OUTPUT    0X01
+#define GPIOE12_MUX_CSID8     0X02
+#define GPIOE12_MUX_LCDD12    0X03
+#define GPIOE12_MUX_DISABLE   0X07
+
+#define GPIOE13_MUX_INPUT     0X00
+#define GPIOE13_MUX_OUTPUT    0X01
+#define GPIOE13_MUX_CSID9     0X02
+#define GPIOE13_MUX_LCDD13    0X03
+#define GPIOE13_MUX_DISABLE   0X07
+
+#define GPIOE14_MUX_INPUT     0X00
+#define GPIOE14_MUX_OUTPUT    0X01
+#define GPIOE14_MUX_CSID10    0X02
+#define GPIOE14_MUX_LCDD14    0X03
+#define GPIOE14_MUX_DISABLE   0X07
+
+#define GPIOE15_MUX_INPUT     0X00
+#define GPIOE15_MUX_OUTPUT    0X01
+#define GPIOE15_MUX_CSID11    0X02
+#define GPIOE15_MUX_LCDD15    0X03
+#define GPIOE15_MUX_DISABLE   0X07
+
+#define GPIOE16_MUX_INPUT     0X00
+#define GPIOE16_MUX_OUTPUT    0X01
+#define GPIOE16_MUX_CSID12    0X02
+#define GPIOE16_MUX_LCDD18    0X03
+#define GPIOE16_MUX_DISABLE   0X07
+
+#define GPIOE17_MUX_INPUT     0X00
+#define GPIOE17_MUX_OUTPUT    0X01
+#define GPIOE17_MUX_CSID13    0X02
+#define GPIOE17_MUX_LCDD19    0X03
+#define GPIOE17_MUX_DISABLE   0X07
+
+#define GPIOE18_MUX_INPUT     0X00
+#define GPIOE18_MUX_OUTPUT    0X01
+#define GPIOE18_MUX_CSID14    0X02
+#define GPIOE18_MUX_LCDD20    0X03
+#define GPIOE18_MUX_DISABLE   0X07
+
+#define GPIOE19_MUX_INPUT     0X00
+#define GPIOE19_MUX_OUTPUT    0X01
+#define GPIOE19_MUX_CSID15    0X02
+#define GPIOE19_MUX_LCDD21    0X03
+#define GPIOE19_MUX_DISABLE   0X07
+
+#define GPIOE20_MUX_INPUT     0X00
+#define GPIOE20_MUX_OUTPUT    0X01
+#define GPIOE20_MUX_CSIFIELD  0X02
+#define GPIOE20_MUX_CSIMIPIMCLK    0X03
+#define GPIOE20_MUX_DISABLE   0X07
+
+#define GPIOE21_MUX_INPUT     0X00
+#define GPIOE21_MUX_OUTPUT    0X01
+#define GPIOE21_MUX_CSISCK    0X02
+#define GPIOE21_MUX_TWI1SCK   0X03
+#define GPIOE21_MUX_UART1TX   0X04
+#define GPIOE21_MUX_DISABLE   0X07
+
+#define GPIOE22_MUX_INPUT     0X00
+#define GPIOE22_MUX_OUTPUT    0X01
+#define GPIOE22_MUX_CSISDA    0X02
+#define GPIOE22_MUX_TWI1SDA   0X03
+#define GPIOE22_MUX_UART1RX   0X04
+#define GPIOE22_MUX_DISABLE   0X07
+
+#define GPIOE23_MUX_INPUT     0X00
+#define GPIOE23_MUX_OUTPUT    0X01
+#define GPIOE23_MUX_LCDD22    0X03
+#define GPIOE23_MUX_UART1RTS  0X04
+#define GPIOE23_MUX_DISABLE   0X07
+
+#define GPIOE24_MUX_INPUT     0X00
+#define GPIOE24_MUX_OUTPUT    0X01
+#define GPIOE24_MUX_LCDD23    0X03
+#define GPIOE24_MUX_UART1CTS   0X04
+#define GPIOE24_MUX_DISABLE   0X07
+
+#define GPIOF0_MUX_INPUT      0X00
+#define GPIOF0_MUX_OUTPUT     0X01
+#define GPIOF0_MUX_SDC0D1     0X02
+#define GPIOF0_MUX_JTAGMS     0X03
+#define GPIOF0_MUX_DISABLE    0X07
+
+#define GPIOF1_MUX_INPUT      0X00
+#define GPIOF1_MUX_OUTPUT     0X01
+#define GPIOF1_MUX_SDC0D0     0X02
+#define GPIOF1_MUX_JTAGDI     0X03
+#define GPIOF1_MUX_DISABLE    0X07
+
+#define GPIOF2_MUX_INPUT      0X00
+#define GPIOF2_MUX_OUTPUT     0X01
+#define GPIOF2_MUX_SDC0CLK    0X02
+#define GPIOF2_MUX_UART0TX    0X03
+#define GPIOF2_MUX_DISABLE    0X07
+
+#define GPIOF3_MUX_INPUT      0X00
+#define GPIOF3_MUX_OUTPUT     0X01
+#define GPIOF3_MUX_SDC0CMD    0X02
+#define GPIOF3_MUX_JTAGD0     0X03
+#define GPIOF3_MUX_DISABLE    0X07
+
+#define GPIOF4_MUX_INPUT      0X00
+#define GPIOF4_MUX_OUTPUT     0X01
+#define GPIOF4_MUX_SDC0D3     0X02
+#define GPIOF4_MUX_UART0RX    0X03
+#define GPIOF4_MUX_DISABLE    0X07
+
+#define GPIOF5_MUX_INPUT      0X00
+#define GPIOF5_MUX_OUTPUT     0X01
+#define GPIOF5_MUX_SDC0D2     0X02
+#define GPIOF5_MUX_JTAGCK     0X03
+#define GPIOF5_MUX_DISABLE    0X07
+
+#define GPIOF6_MUX_INPUT      0X00
+#define GPIOF6_MUX_OUTPUT     0X01
+#define GPIOF6_MUX_DISABLE    0X07
+
+#define GPIOG0_MUX_INPUT      0X00
+#define GPIOG0_MUX_OUTPUT     0X01
+#define GPIOG0_MUX_SDC1CLK    0X02
+#define GPIOG0_MUX_PGEINT0    0X06
+#define GPIOG0_MUX_DISABLE    0X07
+
+#define GPIOG1_MUX_INPUT      0X00
+#define GPIOG1_MUX_OUTPUT     0X01
+#define GPIOG1_MUX_SDC1CMD    0X02
+#define GPIOG1_MUX_PGEINT1    0X06
+#define GPIOG1_MUX_DISABLE    0X07
+
+#define GPIOG2_MUX_INPUT      0X00
+#define GPIOG2_MUX_OUTPUT     0X01
+#define GPIOG2_MUX_SDC1D0     0X02
+#define GPIOG2_MUX_PGEINT2    0X06
+#define GPIOG2_MUX_DISABLE    0X07
+
+#define GPIOG3_MUX_INPUT      0X00
+#define GPIOG3_MUX_OUTPUT     0X01
+#define GPIOG3_MUX_SDC1D1     0X02
+#define GPIOG3_MUX_PGEINT3    0X06
+#define GPIOG3_MUX_DISABLE    0X07
+
+#define GPIOG4_MUX_INPUT      0X00
+#define GPIOG4_MUX_OUTPUT     0X01
+#define GPIOG4_MUX_SDC1D2     0X02
+#define GPIOG4_MUX_PGEINT4    0X06
+#define GPIOG4_MUX_DISABLE    0X07
+
+#define GPIOG5_MUX_INPUT      0X00
+#define GPIOG5_MUX_OUTPUT     0X01
+#define GPIOG5_MUX_SDC1D3     0X02
+#define GPIOG5_MUX_PGEINT5    0X06
+#define GPIOG5_MUX_DISABLE    0X07
+
+
+void set_gpio_pull(uint8_t gpio, uint8_t pin, uint8_t pull);
+void set_gpio_driv(uint8_t gpio, uint8_t pin, uint8_t driv);
+void set_gpio_multiplex(uint32_t gpio, uint32_t pin, uint32_t multiplex);
+void set_gpio_level(uint8_t gpio, uint8_t pin, bool level);
+bool get_gpio_level(uint8_t gpio, uint8_t pin);

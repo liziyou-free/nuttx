@@ -59,12 +59,12 @@ static inline void v3s_timer_irq(enum timer_no timer_no, bool sta)
 }
 
 
-static inline void v3s_timer_clear_irq(enum timer_no timer_no)
+static inline void v3s_timer_clear_irq(enum timer_no timer_type)
 {
     uint32_t b;
     uint32_t irq_reg;
     
-    b = (1 << (timer_no - 1));
+    b = (1 << (timer_type - 1));
     irq_reg = getreg32(V3S_TIMER_BASE + TIM_IRQ_STA_REG_OFF);
     /* clear irqpending bit */
     irq_reg |= b;

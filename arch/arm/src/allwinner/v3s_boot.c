@@ -52,7 +52,7 @@ void arm_boot(void)
 {
   /* Perf init */
 
-  up_perf_init(0);
+  // up_perf_init(0);
 
   /* Set the page table for section */
  
