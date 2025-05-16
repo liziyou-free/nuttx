@@ -23,11 +23,11 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-
 #include "arm_internal.h"
-
 #include "v3s_boot.h"
 #include "v3s_irq.h"
+#include <nuttx/arch.h>
+#include "arm_timer.h"
 #include "v3s_memorymap.h"
 
 #ifdef CONFIG_DEVICE_TREE
@@ -37,6 +37,13 @@
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+static void v3s_arch_gpt_init (uint32_t freq)
+{
+  CP15_SET(CNTFRQ, freq);
+  UP_ISB();
+}
+
 
 /****************************************************************************
  * Name: arm_boot
@@ -52,7 +59,10 @@ void arm_boot(void)
 {
   /* Perf init */
 
-  // up_perf_init(0);
+  up_perf_init(0);
+
+  /* Init GTM clock frequncy */
+  v3s_arch_gpt_init(V3S_GTM_FREQ);
 
   /* Set the page table for section */
  

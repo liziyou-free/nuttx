@@ -21,10 +21,11 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-
+#include <time.h>
+#include <nuttx/arch.h>
+#include "arm_timer.h"
 #include <nuttx/timers/arch_alarm.h>
 
-#include "arm_timer.h"
 
 /****************************************************************************
  * Public Functions
@@ -33,4 +34,32 @@
 void up_timer_initialize(void)
 {
   up_alarm_set_lowerhalf(arm_timer_initialize(0));
+}
+
+
+/*
+ * 以下函数是 armv7a/arm_timer.c 中的函数副本，用于在本文件中实现精确延时
+ */
+static uint64_t _arm_timer_get_count(void)
+{
+  UP_ISB();
+  return CP15_GET64(CNTPCT);
+}
+static uint32_t _arm_timer_get_freq(void)
+{
+  UP_ISB();
+  return CP15_GET(CNTFRQ);
+}
+
+void v3s_udelay(unsigned int usec)
+{
+  uint32_t freq = _arm_timer_get_freq();
+  uint64_t count = _arm_timer_get_count();
+  uint64_t need = (uint64_t)usec * freq / USEC_PER_SEC;
+
+  while ((_arm_timer_get_count() - count) < need)
+  {
+    ;
+  }
+  return;
 }

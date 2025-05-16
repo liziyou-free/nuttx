@@ -26,6 +26,15 @@
 #define __ALLWINNER_V3S__
 
 
+/*
+ *  V3S arch Generic Timer Clock Frequncy
+ */
+#define V3S_GTM_FREQ                24000000ULL
+
+
+/*  
+ * System Memory Map Defines
+ */
 #define V3S_SRAM_A1_BASE            0X00000000
 #define V3S_SRAM_A1_SIZE            (16 * 1024)        /* 16k */
 

@@ -104,6 +104,9 @@ int v3s_timer_init(enum timer_no timer_no, uint32_t tick_per_seco)
     uint32_t count;
     volatile uint32_t ctrl_reg = 0;
     
+    /* 停止使用这个定时器作为系统tick */
+    return 0;
+
     v3s_timer_clear_irq(timer_no);
 
     /* 重置定时器 */
