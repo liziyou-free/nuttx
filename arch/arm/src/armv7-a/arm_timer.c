@@ -198,7 +198,8 @@ static int arm_timer_start(struct oneshot_lowerhalf_s *lower_,
       ctrl = arm_timer_get_ctrl();
       ctrl |= ARM_TIMER_CTRL_ENABLE | ARM_TIMER_CTRL_INT_MASK;
       arm_timer_set_ctrl(ctrl);
-#if defined(CONFIG_ARCH_TRUSTZONE_SECURE)
+// #if defined(CONFIG_ARCH_TRUSTZONE_SECURE)
+#if 1
       up_enable_irq(GIC_IRQ_STM);
 #else
       up_enable_irq(GIC_IRQ_PTM);
@@ -246,15 +247,15 @@ static int arm_timer_cancel(struct oneshot_lowerhalf_s *lower_,
 }
 
 static int arm_timer_current(struct oneshot_lowerhalf_s *lower_,
-                             struct timespec *ts)
+  struct timespec *ts)
 {
-  uint64_t nsec = nsec_from_count(arm_timer_get_count(),
-                                  arm_timer_get_freq());
+uint64_t nsec = nsec_from_count(arm_timer_get_count(),
+       arm_timer_get_freq());
 
-  ts->tv_sec  = nsec / NSEC_PER_SEC;
-  ts->tv_nsec = nsec % NSEC_PER_SEC;
+ts->tv_sec  = nsec / NSEC_PER_SEC;
+ts->tv_nsec = nsec % NSEC_PER_SEC;
 
-  return 0;
+return 0;
 }
 
 static int arm_timer_interrupt(int irq, void *context, void *arg)
@@ -306,7 +307,8 @@ struct oneshot_lowerhalf_s *arm_timer_initialize(unsigned int freq)
   lower->freq    = freq;
   lower->running = -1;
 
-#if defined(CONFIG_ARCH_TRUSTZONE_SECURE)
+// #if defined(CONFIG_ARCH_TRUSTZONE_SECURE)
+#if 1
   irq_attach(GIC_IRQ_STM, arm_timer_interrupt, lower);
 #else
   irq_attach(GIC_IRQ_PTM, arm_timer_interrupt, lower);
