@@ -31,11 +31,11 @@
 #endif
 
 #ifndef CONFIG_V3S_MAC_TXDES_NUM
-# define CONFIG_V3S_MAC_TXDES_NUM       128
+# define CONFIG_V3S_MAC_TXDES_NUM       64
 #endif
 
 #ifndef CONFIG_V3S_MAC_RXDES_NUM
-# define CONFIG_V3S_MAC_RXDES_NUM       128
+# define CONFIG_V3S_MAC_RXDES_NUM       64
 #endif
 
 #if !defined(CONFIG_SCHED_WORKQUEUE)
@@ -148,22 +148,6 @@ static int v3s_mac_transmit(struct v3s_mac_dev_s *priv);
 static void v3s_mac_receive(FAR struct v3s_mac_dev_s *priv);
 static int v3s_descripter_init(FAR struct v3s_mac_dev_s *priv);
 
-
-#undef putreg32
-#undef getreg32
-
-static void putreg32(uint32_t v, uint32_t a)
-{
-    *(volatile uint32_t *)(a) = (v);
-    return;
-}
-
-static uint32_t getreg32(uint32_t a)
-{
-    uint32_t v;
-    v = *(volatile uint32_t *)(a);
-    return v;
-}
 
 
 /******************************************************************************
@@ -427,7 +411,6 @@ static void v3s_mac_txdone(FAR struct v3s_mac_dev_s *priv)
     while (priv->tx_pending) {
         txdes = v3s_mac_current_clean_txdes(priv);
         up_flush_dcache((uintptr_t)txdes, (uintptr_t)txdes + sizeof(*txdes));
-        up_invalidate_dcache((uintptr_t)txdes, (uintptr_t)txdes + sizeof(*txdes));
         /* txdes owned by dma */
         if (txdes->txdes1 & TXDES_1ST_OWN) {
             goto next;
@@ -440,7 +423,6 @@ static void v3s_mac_txdone(FAR struct v3s_mac_dev_s *priv)
     next:
         priv->tx_clean_pointer = (priv->tx_clean_pointer + 1) & (CONFIG_V3S_MAC_TXDES_NUM - 1);
         priv->tx_pending--;
-        up_clean_dcache((uintptr_t)txdes, (uintptr_t)txdes + sizeof(*txdes));
     }
 
     /* If no further xmits are pending, then cancel the TX timeout and
@@ -481,23 +463,35 @@ static int v3s_mac_transmit(struct v3s_mac_dev_s *priv)
     txdes->txdes3 = (uint32_t)(priv->net_dev.d_buf);
     txdes->txdes2 = TXDES_2ST_INT_CTRL | TXDES_2ST_LAST_DESC | \
                     TXDES_2ST_FIR_DESC | V3S_SET_TXDES_BUF_SIZE(len) | (1 << 24);
+    UP_DMB();
+    up_flush_dcache((uintptr_t)txdes->txdes3, (uintptr_t)txdes->txdes3 + len);
+    up_flush_dcache((uintptr_t)txdes, (uintptr_t)txdes + sizeof(*txdes));
+
     txdes->txdes1 = TXDES_1ST_OWN;
+
+    up_flush_dcache((uintptr_t)txdes->txdes3, (uintptr_t)txdes->txdes3 + len);
+    up_flush_dcache((uintptr_t)txdes, (uintptr_t)txdes + sizeof(*txdes));
 
     priv->tx_index = (priv->tx_index + 1) & (CONFIG_V3S_MAC_TXDES_NUM - 1);
     priv->tx_pending++;
-    
-    up_flush_dcache((uintptr_t)txdes->txdes3, (uintptr_t)txdes->txdes3 + len);
-    up_flush_dcache((uintptr_t)txdes, (uintptr_t)txdes + sizeof(*txdes));
+
+    // printf("\nTrnsmit(0x%x): %d bytes :", (uint32_t)(priv->net_dev.d_buf), len);
+    // for (int i = 0; i < 32; i++) {
+    //     if (i % 64 == 0) {
+    //         printf("\n");
+    //     }
+    //     printf("%x, ", *(uint8_t *)(priv->net_dev.d_buf + i));
+    // }
 
     /* Start TX */
     reg = getreg32(priv->iobase_addr + GETH_TX_CTL1);
     reg |= TX_DMA_START | TX_DMA_EN;
+    UP_DMB();
     putreg32(reg, priv->iobase_addr + GETH_TX_CTL1);
-    UP_ISB();
 
     /* Setup the TX timeout watchdog (perhaps restarting the timer) */
-    wd_start(&priv->v3s_txtimeout, V3S_MAC_TXTIMEOUT,
-            v3s_mac_txtimeout_expiry, (wdparm_t)priv);
+    // wd_start(&priv->v3s_txtimeout, V3S_MAC_TXTIMEOUT,
+    //         v3s_mac_txtimeout_expiry, (wdparm_t)priv);
 
     return OK;
 }
@@ -525,19 +519,16 @@ static void v3s_mac_receive(FAR struct v3s_mac_dev_s *priv)
     while (rx_descp_num--) {
 
         rxdes = v3s_mac_current_rxdes(priv);
-        up_invalidate_dcache((uintptr_t)rxdes, (uintptr_t)rxdes + sizeof(*rxdes));
+        up_flush_dcache((uintptr_t)rxdes, (uintptr_t)rxdes + sizeof(*rxdes));
 
         if (rxdes->rxdes1 & RXDES_1ST_OWN) {
             goto next;
         }
-
+        UP_DMB();
         len = GET_RX_LEN_FROM_DESC(rxdes->rxdes1);
         data = (uint8_t *)(rxdes->rxdes3);
-        UP_DMB();
-        UP_ISB();
 
-        // up_flush_dcache((uintptr_t)data, (uintptr_t)data + 2048);
-        up_invalidate_dcache((uintptr_t)data, (uintptr_t)data + 2048);
+        up_flush_dcache((uintptr_t)data, (uintptr_t)data + RX_BUF_SIZE);
 
         /* Copy the data data from the hardware to priv->net_dev.d_buf.  Set
         * amount of data in priv->net_dev.d_len
@@ -551,6 +542,13 @@ static void v3s_mac_receive(FAR struct v3s_mac_dev_s *priv)
 
 #ifdef CONFIG_NET_IPv4
         if (BUF->type == HTONS(ETHTYPE_IP)) {
+            // printf("\nIPv4 packet: %d bytes :", len);
+            // for (int i = 0; i < 32; i++) {
+            //     if (i % 64 == 0) {
+            //         printf("\n");
+            //     }
+            //     printf("%x, ", *(uint8_t *)(priv->net_dev.d_buf + i));
+            // }
             /* Receive an IPv4 packet from the network device */
             ipv4_input(&priv->net_dev);
 
@@ -591,10 +589,12 @@ static void v3s_mac_receive(FAR struct v3s_mac_dev_s *priv)
         }
 #endif
         memset(rxdes->rxdes3, 0, RX_BUF_SIZE);
+        up_flush_dcache((uint32_t)rxdes->rxdes3, (uint32_t)rxdes->rxdes3 + RX_BUF_SIZE);
+        rxdes->rxdes2 = V3S_SET_RXDES_BUF_SIZE(RX_BUF_SIZE - 1) | (1 << 24);
+        UP_DMB();
         rxdes->rxdes1 = RXDES_1ST_OWN;
-        UP_DSB();
-        up_clean_dcache((uint32_t)rxdes->rxdes3, (uint32_t)rxdes->rxdes3 + RX_BUF_SIZE);
-        up_clean_dcache((uint32_t)rxdes, (uint32_t)rxdes + sizeof(*rxdes));
+        UP_DMB();
+        up_flush_dcache((uint32_t)rxdes, (uint32_t)rxdes + sizeof(*rxdes));
 next:
         priv->rx_index = (priv->rx_index + 1) & (CONFIG_V3S_MAC_RXDES_NUM - 1);
     }
@@ -609,6 +609,8 @@ static void v3s_mac_interrupt_work(FAR void *arg)
     struct v3s_mac_dev_s *priv;
 
     priv = (struct v3s_mac_dev_s *)arg;
+
+    // printf("irq-eth (0x%x)...\n", priv->status);
 
     /* Process pending Ethernet interrupts */
     net_lock();
@@ -686,6 +688,12 @@ static int v3s_mac_reset(FAR struct v3s_mac_dev_s *priv)
         printf("\r\nv3s emac reset fail!\n");
     }
 
+    putreg32(0, priv->iobase_addr + GETH_RX_CTL1);
+	putreg32(0, priv->iobase_addr + GETH_TX_CTL1);
+	putreg32(0, priv->iobase_addr + GETH_RX_FRM_FLT);
+	putreg32(0, priv->iobase_addr + GETH_INT_EN);
+	putreg32(0x1FFFFFF, priv->iobase_addr + GETH_INT_STA);
+
     return (try == 0x00);
 }
 
@@ -747,7 +755,7 @@ static int v3s_descripter_init(FAR struct v3s_mac_dev_s *priv)
       rxdes[i].rxdes4 = (uint32_t)(rxdes + i + 1); /* Next ring */
     }
     rxdes[CONFIG_V3S_MAC_RXDES_NUM - 1].rxdes4 = (uint32_t)rxdes;
-    up_clean_dcache((uintptr_t)rxdes, (uintptr_t)rxdes + sizeof(priv->rxdes));
+    up_flush_dcache((uintptr_t)rxdes, (uintptr_t)rxdes + sizeof(priv->rxdes));
 
 
     /* Initialize Tx descriptors */
@@ -760,7 +768,7 @@ static int v3s_descripter_init(FAR struct v3s_mac_dev_s *priv)
       txdes[i].txdes4 = (uint32_t)(txdes + i + 1);
     }
     txdes[CONFIG_V3S_MAC_TXDES_NUM - 1].txdes4 = (uint32_t)txdes;
-    up_clean_dcache((uintptr_t)txdes, (uintptr_t)txdes + sizeof(priv->txdes));
+    up_flush_dcache((uintptr_t)txdes, (uintptr_t)txdes + sizeof(priv->txdes));
     
 
     /* Config descripptionn to registers */
@@ -793,7 +801,7 @@ static int v3s_mac_hal_init(FAR struct v3s_mac_dev_s *priv)
     v3s_descripter_init(priv);
 
     /* Initialize core */
-    // reg_val = getreg32(priv->iobase_addr + GETH_TX_CTL0);
+    reg_val = getreg32(priv->iobase_addr + GETH_TX_CTL0);
     reg_val |= TX_EN | TX_JABBER_DISABLE;   /* Enable transmit component &  Jabber Disable */
     putreg32(reg_val, priv->iobase_addr + GETH_TX_CTL0);
 
@@ -833,6 +841,7 @@ static int v3s_mac_hal_init(FAR struct v3s_mac_dev_s *priv)
     return 0;
 }
 
+
 static int v3s_mac_ifup(struct net_driver_s *dev)
 {
     struct v3s_mac_dev_s *priv = NULL;
@@ -843,7 +852,7 @@ static int v3s_mac_ifup(struct net_driver_s *dev)
 }
 
 
-static int v3s_mac_ifdown(struct net_driver_s *priv)
+static int v3s_mac_ifdown(struct net_driver_s *dev)
 {
     return 0;
 }
@@ -851,6 +860,11 @@ static int v3s_mac_ifdown(struct net_driver_s *priv)
 
 static int v3s_mac_txavail(struct net_driver_s *dev)
 {
+    struct v3s_mac_dev_s *priv = NULL;
+
+    priv = (FAR struct v3s_mac_dev_s *)dev->d_private;
+
+    v3s_mac_transmit(priv);
     return 0;
 }
 
@@ -863,8 +877,8 @@ int v3s_mac_device_initialize(int index)
     priv = &v3s_mac_priv[index];
     irq = v3s_mac_irq_table[index];
 
-    up_enable_dcache();
-    up_enable_icache();
+    up_disable_dcache();
+    up_disable_icache();
 
     /* Initialize the driver structure */
     memset(priv, 0, sizeof(*priv));
