@@ -153,7 +153,7 @@ struct v3s_pin_dev
 struct v3s_pin_dev output_pin_dev_s[] = {
     {
         { 0 },
-        GEN_PIN_CFG(V3S_GPIOB, PIN(0), GPIO_LEVEL_HIGH, GPIO_PULL_DISABLE, GPIOB4_MUX_OUTPUT, GPIO_DRVING_3),
+        GEN_PIN_CFG(V3S_GPIOB, PIN(4), GPIO_LEVEL_HIGH, GPIO_PULL_DISABLE, GPIOB4_MUX_OUTPUT, GPIO_DRVING_3),
     },
 };
 
@@ -161,7 +161,7 @@ struct v3s_pin_dev output_pin_dev_s[] = {
 struct v3s_pin_dev input_pin_dev_s[] = {
     {
         {0},
-        GEN_PIN_CFG(V3S_GPIOB, PIN(1), GPIO_LEVEL_LOW, GPIO_PULL_UP, GPIOB5_MUX_INPUT, GPIO_DRVING_3)
+        GEN_PIN_CFG(V3S_GPIOB, PIN(5), GPIO_LEVEL_LOW, GPIO_PULL_UP, GPIOB5_MUX_INPUT, GPIO_DRVING_3)
     },
 };
 
