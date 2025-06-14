@@ -113,3 +113,50 @@
 /* \brief Number of filled locations in FIFO */
 #define SDMMC_GET_FIFO_LEVEL(ssr)  (((ssr) >> _SDMMC_FIFO_LEVEL_SHIFT_) & _SDMMC_FIFO_LEVEL_MASK_)
 
+
+/*
+ * \brief SDMMC-Host IDMA Registers define
+ */
+// V3S DMA Control Register
+#define V3S_IDMA_CTRL_RST           (0x01 << 0)           // When set, the DMA Controller resets all its internal registers.
+#define V3S_IDMA_CTRL_BUST          (0x01 << 1)           // Fixed Burst.
+#define V3S_IDMA_CTRL_SET_SKIP(s)   (((s) & 0x3) << 2)    // Descriptor Skip Length.
+#define V3S_IDMA_CTRL_ENB           (0x01 << 7)           // When set, the IDMAC is enabled
+#define V3S_IDMA_CTRL_SET_BURST(s)  (((s) & 0x7) << 8)    // Burst size.
+#define V3S_IDMA_CTRL_LOAD          (0x01 << 31)          // When DMAC fetches a descriptor, if the valid bit of a descriptor is not set, 
+                                                         // DMAC FSM will go to the suspend state. Setting this bit will make DMAC re-fetch 
+                                                         // descriptor again and do the transfer normally.
+// V3S DMA Status Register
+#define V3S_IDMA_STA_TXINT          (0x01 << 0)           // IDMA TX interrupt
+#define V3S_IDMA_STA_RXINT          (0x01 << 1)           // IDMA RX interrupt
+#define V3S_IDMA_STA_BUS_ERR        (0x01 << 2)           // IDMA fatal bus error
+#define V3S_IDMA_STA_DESP_ERR       (0x01 << 4)           // IDMA descriptor invalid
+#define V3S_IDMA_STA_ERR_SUM        (0x01 << 5)           // IDMA error summary
+#define V3S_IDMA_STA_INT_SUM        (0x01 << 8)           // IDMA normal interrupt summary
+#define V3S_IDMA_STA_ABN_INT        (0x01 << 9)           // Abnormal Interrupt Summary
+
+// V3S DMA Interrupt enable Register
+#define V3S_IDMA_IE_TXINT           (0x01 << 0)           // IDMA TX interrupt
+#define V3S_IDMA_IE_RXINT           (0x01 << 1)           // IDMA RX interrupt
+#define V3S_IDMA_IE_BUS_ERR         (0x01 << 2)           // IDMA fatal bus error
+#define V3S_IDMA_IE_DESP_ERR       (0x01 << 4)            // IDMA descriptor invalid
+#define V3S_IDMA_IE_ERR_SUM        (0x01 << 5)            // IDMA error summary
+#define V3S_IDMA_IE_INT_SUM        (0x01 << 8)            // IDMA normal interrupt summary
+#define V3S_IDMA_IE_ABN_INT        (0x01 << 9)            // Abnormal Interrupt Summary
+ 
+
+/*
+ * \brief SDMMC-Host IDMA descriptor define
+ */
+#define V3S_IDMA_DESP0_OWN          (0x01 << 31)    // 0: CPU owns this descriptor 1: IDMA owns this descriptor
+#define V3S_IDMA_DESP0_ERR          (0x01 << 30)    // 0: No err 1: some error happened in transfer
+#define V3S_IDMA_DESP0_CHAIN        (0x01 << 4)     // Must be set 1.
+#define V3S_IDMA_DESP0_FIRST_FLAG   (0x01 << 3)     // 0: No first descriptor 1: First descriptor
+#define V3S_IDMA_DESP0_LAST_FLAG    (0x01 << 2)     // 0: No last descriptor 1: Last descriptor
+#define V3S_IDMA_DESP0_INT_DIS      (0x01 << 1)     // 0: Interrupt 1: No Interrupt
+
+#define V3S_IDMA_DESP1_BUFF_SIZE(s) ((s) & 0xFFFF)  // Set size of data buffer
+
+#define V3S_IDMA_DESP2_BUFF_ADDR(a) ((a) & 0xFFFFFFFFUL) // Set address of data buffer
+
+#define V3S_IDMA_DESP3_NEXT_DESP(a) ((a) & 0xFFFFFFFFUL) // Set address of next descriptor
